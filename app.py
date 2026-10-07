@@ -28,5 +28,9 @@ def bus_location():
     data = get_bus_position()
     return jsonify(data)
 
+@app.route("/map")
+def map_page():
+    return app.send_static_file("map.html")
+
 if __name__ == "__main__":
     app.run(debug=True)
