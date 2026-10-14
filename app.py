@@ -17,7 +17,9 @@ def get_bus_position():
     current_lat = SHIPYARD["lat"] + (PATH_STATION["lat"] - SHIPYARD["lat"]) * percent
     current_lng = SHIPYARD["lng"] + (PATH_STATION["lng"] - SHIPYARD["lng"]) * percent
 
-    return {"lat": current_lat, "lng": current_lng, "percent": percent}
+    status = "arrived" if percent >= 1.0 else "on_time"
+
+    return {"lat": current_lat, "lng": current_lng, "percent": percent, "status": status}
 
 @app.route("/")
 def home():
@@ -33,4 +35,5 @@ def map_page():
     return app.send_static_file("map.html")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
+
