@@ -9,15 +9,31 @@ PATH_STATION = {"lat": 40.735, "lng": -74.027}
 trip_start_time = time.time()
 trip_duration = 600
 
+STALL_START = 240    # bus gets stuck 4 minutes into the trip
+STALL_LENGTH = 120   # and stays stuck for 2 minutes
+
 def get_bus_position():
     elapsed = time.time() - trip_start_time
-    percent = elapsed / trip_duration
+
+    if elapsed < STALL_START:
+        moving_time = elapsed
+    elif elapsed < STALL_START + STALL_LENGTH:
+        moving_time = STALL_START
+    else:
+        moving_time = elapsed - STALL_LENGTH
+
+    percent = moving_time / trip_duration
     percent = min(1.0, percent)
 
     current_lat = SHIPYARD["lat"] + (PATH_STATION["lat"] - SHIPYARD["lat"]) * percent
     current_lng = SHIPYARD["lng"] + (PATH_STATION["lng"] - SHIPYARD["lng"]) * percent
 
-    status = "arrived" if percent >= 1.0 else "on_time"
+    if percent >= 1.0:
+        status = "arrived"
+    elif elapsed >= STALL_START:
+        status = "delayed"
+    else:
+        status = "on_time"
 
     return {"lat": current_lat, "lng": current_lng, "percent": percent, "status": status}
 
@@ -36,4 +52,4 @@ def map_page():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
-
+    
