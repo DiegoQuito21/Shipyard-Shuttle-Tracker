@@ -37,6 +37,10 @@ def get_bus_position():
 
     return {"lat": current_lat, "lng": current_lng, "percent": percent, "status": status}
 
+def percent_from_gps(current_lat):
+    percent = (current_lat - SHIPYARD["lat"]) / (PATH_STATION["lat"] - SHIPYARD["lat"])
+    percent = max(0.0, min(1.0, percent))
+    return percent
 @app.route("/")
 def home():
     return "Shuttle tracker backend is running"
