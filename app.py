@@ -1,10 +1,17 @@
 from flask import Flask, jsonify
+import math
 import time
 
 app = Flask(__name__)
 
-SHIPYARD = {"lat": 40.752029, "lng": -74.0235}
-PATH_STATION = {"lat": 40.735, "lng": -74.027}
+# The route in driving order, one (latitude, longitude) pair per corner
+ROUTE = [
+    (40.751586, -74.024239),    # Shuttle pickup, in front of North Independence
+    (40.751474, -74.023686),    # Independence Ct and Sinatra Dr
+    (40.750627, -74.023991),    # Sinatra Dr and 12th St
+    (40.750893, -74.025661),    # 12th St and Hudson St
+    (40.735445, -74.030393),    # PATH entrance
+]
 
 trip_start_time = time.time()
 trip_duration = 10 * 60        # 10 minutes, in seconds
@@ -12,6 +19,31 @@ trip_duration = 10 * 60        # 10 minutes, in seconds
 STALL_START = 4 * 60           # bus gets stuck 4 minutes in
 STALL_LENGTH = 5 * 60          # and stays stuck for 5 minutes
 LATE_THRESHOLD_MIN = 4         # flag "delayed" at 4+ minutes behind schedule
+
+def segment_length(a, b):
+    """Distance in meters between two (lat, lng) points."""
+    mid_lat = math.radians((a[0] + b[0]) / 2)
+    dy = (b[0] - a[0]) * 111000
+    dx = (b[1] - a[1]) * 111000 * math.cos(mid_lat)
+    return math.hypot(dx, dy)
+
+SEGMENT_LENGTHS = []
+for i in range(len(ROUTE) - 1):
+    SEGMENT_LENGTHS.append(segment_length(ROUTE[i], ROUTE[i + 1]))
+TOTAL_LENGTH = sum(SEGMENT_LENGTHS)
+
+def position_on_route(percent):
+    distance_left = percent * TOTAL_LENGTH
+    for i in range(len(SEGMENT_LENGTHS)):
+        if distance_left <= SEGMENT_LENGTHS[i]:
+            fraction = distance_left / SEGMENT_LENGTHS[i]
+            start = ROUTE[i]
+            end = ROUTE[i + 1]
+            lat = start[0] + (end[0] - start[0]) * fraction
+            lng = start[1] + (end[1] - start[1]) * fraction
+            return lat, lng
+        distance_left -= SEGMENT_LENGTHS[i]
+    return ROUTE[-1]
 
 def get_bus_position():
     elapsed = time.time() - trip_start_time
@@ -26,12 +58,12 @@ def get_bus_position():
     percent = moving_time / trip_duration
     percent = min(1.0, percent)
 
-    current_lat = SHIPYARD["lat"] + (PATH_STATION["lat"] - SHIPYARD["lat"]) * percent
-    current_lng = SHIPYARD["lng"] + (PATH_STATION["lng"] - SHIPYARD["lng"]) * percent
+    current_lat, current_lng = position_on_route(percent)
 
+    # The simulation knows the bus's percent directly. With a real tracker,
+    # this will have to be worked out from the GPS coordinates.
     expected_percent = elapsed / trip_duration
-    actual_percent = percent_from_gps(current_lat)
-    minutes_late = (expected_percent - actual_percent) * trip_duration / 60
+    minutes_late = (expected_percent - percent) * trip_duration / 60
 
     if percent >= 1.0:
         status = "arrived"
@@ -42,11 +74,6 @@ def get_bus_position():
 
     return {"lat": current_lat, "lng": current_lng, "percent": percent, "status": status}
 
-def percent_from_gps(current_lat):
-    percent = (current_lat - SHIPYARD["lat"]) / (PATH_STATION["lat"] - SHIPYARD["lat"])
-    percent = max(0.0, min(1.0, percent))
-    return percent
-
 @app.route("/")
 def home():
     return "Shuttle tracker backend is running"
@@ -55,6 +82,10 @@ def home():
 def bus_location():
     data = get_bus_position()
     return jsonify(data)
+
+@app.route("/api/route")
+def route():
+    return jsonify(ROUTE)
 
 @app.route("/map")
 def map_page():

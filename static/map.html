@@ -46,16 +46,16 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    L.polyline(
-      [
-        [40.752029, -74.0235],
-        [40.735, -74.027]
-      ],
-      { color: '#2563eb', weight: 5, opacity: 0.7 }
-    ).addTo(map);
+    async function drawRoute() {
+      const response = await fetch('/api/route');
+      const route = await response.json();
 
-    L.marker([40.752029, -74.0235]).addTo(map).bindPopup("The Shipyard");
-    L.marker([40.735, -74.027]).addTo(map).bindPopup("Hoboken PATH Station");
+      L.polyline(route, { color: '#2563eb', weight: 5, opacity: 0.7 }).addTo(map);
+      L.marker(route[0]).addTo(map).bindPopup("The Shipyard");
+      L.marker(route[route.length - 1]).addTo(map).bindPopup("Hoboken PATH Station");
+      map.fitBounds(route);
+    }
+    drawRoute();
 
     const busMarkerIcon = L.divIcon({
       html: '🚌',
@@ -63,7 +63,7 @@
       iconSize: [36, 36],
       iconAnchor: [18, 18]
     });
-    const busIcon = L.marker([40.7435, -74.026], { icon: busMarkerIcon }).addTo(map);
+    const busIcon = L.marker([40.752029, -74.0235], { icon: busMarkerIcon }).addTo(map);
 
     const labels = {
       on_time: "On Time",
@@ -88,3 +88,4 @@
   </script>
 </body>
 </html>
+
