@@ -6,13 +6,29 @@
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
+
     #status-panel {
       position: absolute; top: 16px; right: 16px; z-index: 1000;
       background: white; padding: 12px 16px; border-radius: 10px;
       font-family: -apple-system, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      border-left: 6px solid #94a3b8;
     }
+    #status-panel.on_time { border-left-color: #16a34a; }
+    #status-panel.delayed { border-left-color: #dc2626; }
+    #status-panel.arrived { border-left-color: #2563eb; }
+
     #status-text { font-size: 1.1rem; font-weight: 600; }
+    #status-panel.on_time #status-text { color: #16a34a; }
+    #status-panel.delayed #status-text { color: #dc2626; }
+    #status-panel.arrived #status-text { color: #2563eb; }
+
     #progress-text { font-size: 0.85rem; color: #64748b; margin-top: 2px; }
+
+    .bus-icon {
+      font-size: 22px; background: white; border: 2px solid #2563eb;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body>
@@ -30,10 +46,24 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
+    L.polyline(
+      [
+        [40.752029, -74.0235],
+        [40.735, -74.027]
+      ],
+      { color: '#2563eb', weight: 5, opacity: 0.7 }
+    ).addTo(map);
+
     L.marker([40.752029, -74.0235]).addTo(map).bindPopup("The Shipyard");
     L.marker([40.735, -74.027]).addTo(map).bindPopup("Hoboken PATH Station");
 
-    const busIcon = L.marker([40.7435, -74.026]).addTo(map);
+    const busMarkerIcon = L.divIcon({
+      html: '🚌',
+      className: 'bus-icon',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+    const busIcon = L.marker([40.7435, -74.026], { icon: busMarkerIcon }).addTo(map);
 
     const labels = {
       on_time: "On Time",
@@ -47,6 +77,7 @@
       busIcon.setLatLng([data.lat, data.lng]);
 
       const label = labels[data.status] || "Unknown";
+      document.getElementById('status-panel').className = data.status;
       document.getElementById('status-text').textContent = label;
       document.getElementById('progress-text').textContent =
         Math.round(data.percent * 100) + "% of trip complete";
