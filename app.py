@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import math
 import time
 
@@ -7,13 +7,14 @@ app = Flask(__name__)
 # The route in driving order, one (latitude, longitude) pair per corner
 ROUTE = [
     (40.751586, -74.024239),    # Shuttle pickup, in front of North Independence
-    (40.751474, -74.023686),    # Independence Ct and Sinatra Dr
-    (40.750627, -74.023991),    # Sinatra Dr and 12th St
-    (40.750893, -74.025661),    # 12th St and Hudson St
-    (40.735445, -74.030393),    # PATH entrance
+    (40.751474, -74.023686),    # Independence Ct and Sinatra Dr N
+    (40.749437, -74.023980),    # Sinatra Dr N and 11th St
+    (40.749752, -74.025992),    # 11th St and Hudson St
+    (40.736470, -74.030193),    # PATH stop, 78 Hudson St
 ]
 
 trip_start_time = time.time()
+demo_speed = 1                 # 1 = real time, 5 = five times faster
 trip_duration = 10 * 60        # 10 minutes, in seconds
 
 STALL_START = 4 * 60           # bus gets stuck 4 minutes in
@@ -46,7 +47,7 @@ def position_on_route(percent):
     return ROUTE[-1]
 
 def get_bus_position():
-    elapsed = time.time() - trip_start_time
+    elapsed = (time.time() - trip_start_time) * demo_speed
 
     if elapsed < STALL_START:
         moving_time = elapsed
@@ -86,6 +87,14 @@ def bus_location():
 @app.route("/api/route")
 def route():
     return jsonify(ROUTE)
+
+@app.route("/api/restart", methods=["POST"])
+def restart():
+    global trip_start_time, demo_speed
+    speed = request.args.get("speed", 1, type=int)
+    demo_speed = speed if speed in (1, 5, 10) else 1
+    trip_start_time = time.time()
+    return jsonify({"speed": demo_speed})
 
 @app.route("/map")
 def map_page():

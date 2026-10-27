@@ -24,6 +24,16 @@
 
     #progress-text { font-size: 0.85rem; color: #64748b; margin-top: 2px; }
 
+    #demo-controls {
+      margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0;
+      font-size: 0.75rem; color: #64748b; display: flex; gap: 6px; align-items: center;
+    }
+    #demo-controls button {
+      border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 6px;
+      padding: 3px 8px; font-size: 0.75rem; cursor: pointer;
+    }
+    #demo-controls button:hover { background: #e2e8f0; }
+
     .bus-icon {
       font-size: 22px; background: white; border: 2px solid #2563eb;
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -36,6 +46,12 @@
   <div id="status-panel">
     <div id="status-text">Loading...</div>
     <div id="progress-text"></div>
+    <div id="demo-controls">
+      <span>Restart demo:</span>
+      <button onclick="restartDemo(1)">1x</button>
+      <button onclick="restartDemo(5)">5x</button>
+      <button onclick="restartDemo(10)">10x</button>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -51,8 +67,8 @@
       const route = await response.json();
 
       L.polyline(route, { color: '#2563eb', weight: 5, opacity: 0.7 }).addTo(map);
-      L.marker(route[0]).addTo(map).bindPopup("The Shipyard");
-      L.marker(route[route.length - 1]).addTo(map).bindPopup("Hoboken PATH Station");
+      L.marker(route[0]).addTo(map).bindPopup("Shipyard pickup");
+      L.marker(route[route.length - 1]).addTo(map).bindPopup("PATH stop (78 Hudson St)");
       map.fitBounds(route);
     }
     drawRoute();
@@ -63,7 +79,7 @@
       iconSize: [36, 36],
       iconAnchor: [18, 18]
     });
-    const busIcon = L.marker([40.752029, -74.0235], { icon: busMarkerIcon }).addTo(map);
+    const busIcon = L.marker([40.751586, -74.024239], { icon: busMarkerIcon }).addTo(map);
 
     const labels = {
       on_time: "On Time",
@@ -83,9 +99,13 @@
         Math.round(data.percent * 100) + "% of trip complete";
     }
 
+    async function restartDemo(speed) {
+      await fetch('/api/restart?speed=' + speed, { method: 'POST' });
+      updateBusPosition();
+    }
+
     updateBusPosition();
     setInterval(updateBusPosition, 2000);
   </script>
 </body>
 </html>
-
